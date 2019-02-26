@@ -1,0 +1,858 @@
+// Project: GUI_frame 
+// Created: 2019-02-25
+
+type GameType
+	background as integer
+	frame as integer
+endtype
+
+global g as GameType
+
+InitialiseScreen(1024, 768, "GUI_frame", 0xA8A8A8, %1111)
+InitialiseGameVariables()
+LoadResources()
+CreateInitialLayout()
+
+do
+    in = GetUserInput()
+    HandleUserInput(in)
+    HandleOther()
+    Sync()
+loop
+
+// functions
+function InitialiseScreen(w as integer, h as integer, t as string, c as integer, r as integer)
+	if w = 0 or h = 0
+		SetWindowSize(0, 0, 1)
+	else
+		SetWindowSize(w, h, 0)
+		SetWindowTitle(t)
+	endif
+	SetDisplayAspect(1.0*w/h)
+	SetClearColor((c&&0xFF0000)>>16, (c&&0xFF00)>>8, c&&0xFF)
+	ClearScreen()
+	SetOrientationAllowed((r&&%1000)>>3, (r&&100)>>2, (r&&10)>>1, r&&1)
+	UseNewDefaultFonts(1)
+endfunction
+
+function InitialiseGameVariables()
+endfunction
+
+function LoadResources()
+endfunction
+
+function CreateInitialLayout()
+	g.background = CreateSprite(LoadImage("background.jpg"))
+	SetSpriteSize(g.background, 30, -1)
+	SetSpritePosition(g.background, 50, 5)
+	SetSpriteDepth(g.background, 20)
+	g.frame = CreateGUIFrame(10, 10, 50, 40, "")
+	AddTextToGUIFrame(g.frame, 30, 5, "Text Widget", 4, 0xFF0000)
+	AddCheckboxToGUIFrame(g.frame, 2, 25, "checkbox.png", "Option 1")
+	AddRadioButtonToGUIFrame(g.frame, 22, 20, "radiobutton.png", "Test 1", 1)
+	AddRadioButtonTOGUIFrame(g.frame, 22, 25, "radiobutton.png", "Test 2", 1)
+	AddSpriteToGUIFrame(g.frame, 35, 20, 20, -1, "inframeimage.jpg")
+	AddButtonToGUIFrame(g.frame, 1, 1, 10, -1, "blankbut.png", "Delete Frame")
+	AddButtonToGUIFrame(g.frame, 1, 8, 10, -1, "blankbut.png", "Move Frame")
+	AddButtonToGUIFrame(g.frame, 1, 15, 10, -1, "blankbut.png", "Change layer")
+endfunction
+
+function GetUserInput()
+	in = HandleGUIFrame(g.frame)
+endfunction in
+
+function HandleUserInput(in as integer)
+	select in
+		case 0, 1, 2, 3, 4, 5:
+			exitfunction
+		endcase
+		case 6:
+			DeleteGUIFrame(g.frame)
+		endcase
+		case 7:
+			SetGUIFramePosition(g.frame, 15, 20)
+		endcase
+		case 8:
+			SetGUIFrameDepth(g.frame, 30)
+		endcase
+	endselect
+endfunction
+
+function HandleOther()
+endfunction
+
+type ElementType
+	restype as integer
+	id as integer
+endtype
+
+type GUIFrameType
+	img as integer
+	spr as integer
+	deleted as integer
+	contents as ElementType[0]
+endtype
+
+global GUIFrames as GUIFrameType[0]
+
+function CreateGUIFrame(x as float, y as float, w as float, h as float, image as string)
+	GUIFrames.length = GUIFrames.length + 1
+	post = GUIFrames.length
+	if image <> ""
+		GUIFrames[post].img = LoadImage(image)
+	else
+		GUIFrames[post].img = BuildDefaultGUIFrame(w, h)
+	endif
+	GUIFrames[post].spr = CreateSprite(GUIFrames[post].img)
+	SetSpriteSize(GUIFrames[post].spr, w, h)
+	SetSpritePosition(GUIFrames[post].spr, x, y)
+	GUIFrames[post].deleted = 0
+endfunction post
+
+function AddSpriteToGUIFrame(frm as integer, x as float, y as float, w as float, h as float, img as string)
+	if frm < 1 or frm > GUIFrames.length
+		exitfunction 0
+	elseif GUIFrames[frm].deleted = 1
+		exitfunction 0
+	endif
+	GUIFrames[frm].contents.length = GUIFrames[frm].contents.length+1
+	post = GUIFrames[frm].contents.length
+	GUIFrames[frm].contents[post].restype = 1
+	GUIFrames[frm].contents[post].id = CreateSprite(LoadImage(img))
+	SetSpriteSize(GUIFrames[frm].contents[post].id, w, h)
+	SetSpritePosition(GUIFrames[frm].contents[post].id, GetSpriteX(GUIFrames[frm].spr)+x, GetSpriteY(GUIFrames[frm].spr)+y)
+	SetSpriteScissor(GUIFrames[frm].contents[post].id, GetSpriteX(GUIFrames[frm].spr), GetSpriteY(GUIFrames[frm].spr), GetSpriteX(GUIFrames[frm].spr)+GetSpriteWidth(GUIFrames[frm].spr), GetSpriteY(GUIFrames[frm].spr)+GetSpriteHeight(GUIFrames[frm].spr))
+endfunction post
+
+function AddTextToGUIFrame(frm as integer, x as float, y as float, txt as string, sz as float, col as integer)
+	if frm < 1 or frm > GUIFrames.length
+		exitfunction 0
+	elseif GUIFrames[frm].deleted = 1
+		exitfunction 0
+	endif
+	GUIFrames[frm].contents.length = GUIFrames[frm].contents.length+1
+	post = GUIFrames[frm].contents.length
+	GUIFrames[frm].contents[post].restype = 2
+	GUIFrames[frm].contents[post].id = CreateText(txt)
+	SetTextSize(GUIFrames[frm].contents[post].id, sz)
+	SetTextColor(GUIFrames[frm].contents[post].id, (col&&0xFF0000)>>16, (col&&0xFF00)>>8, col&&0xFF, 255)
+	SetTextPosition(GUIFrames[frm].contents[post].id, GetSpriteX(GUIFrames[frm].spr)+x, GetSpriteY(GUIFrames[frm].spr)+y)
+	//SetTextScissor(GUIFrames[frm].contents[post].id, GetSpriteX(GUIFrames[frm].spr), GetSpriteY(GUIFrames[frm].spr), GetSpriteX(GUIFrames[frm].spr) + GetSpriteWidth(GUIFrames[frm].spr), GetSpriteY(GUIFrames[frm].spr) + GetSpriteHeight(GUIFrames[frm].spr))
+endfunction post
+
+function AddButtonToGUIFrame(frm as integer, x as float, y as float, w as float, h as float, img as string, leg as string)
+	if frm < 1 or frm > GUIFrames.length
+		exitfunction 0
+	elseif GUIFrames[frm].deleted = 1
+		exitfunction 0
+	endif
+	GUIFrames[frm].contents.length = GUIFrames[frm].contents.length+1
+	post = GUIFrames[frm].contents.length
+	GUIFrames[frm].contents[post].restype = 3
+	GUIFrames[frm].contents[post].id = CreateGUIButton(GetSpriteX(GUIFrames[frm].spr)+x, GetSpriteY(GUIFrames[frm].spr)+y, w, h, img, leg)
+	SetSpriteScissor(GUIButtons[GUIFrames[frm].contents[post].id].spr, GetSpriteX(GUIFrames[frm].spr), GetSpriteY(GUIFrames[frm].spr), GetSpriteX(GUIFrames[frm].spr)+GetSpriteWidth(GUIFrames[frm].spr), GetSpriteY(GUIFrames[frm].spr) + GetSpriteHeight(GUIFrames[frm].spr))
+endfunction post
+
+function AddCheckboxToGUIFrame(frm as integer, x as float, y as float, img as string, leg as string)
+	if frm < 1 or frm > GUIFrames.length
+		exitfunction 0
+	endif
+	GUIFrames[frm].contents.length = GUIFrames[frm].contents.length+1
+	post = GUIFrames[frm].contents.length
+	GUIFrames[frm].contents[post].restype = 4
+	GUIFrames[frm].contents[post].id = CreateGUICheckbox(GetSpriteX(GUIFrames[frm].spr)+x, GetSpriteY(GUIFrames[frm].spr)+y, img, leg)
+	SetSpriteScissor(GUICheckboxes[GUIFrames[frm].contents[post].id].spr, GetSpriteX(GUIFrames[frm].spr), GetSpriteY(GUIFrames[frm].spr), GetSpriteX(GUIFrames[frm].spr)+GetSpriteWidth(GUIFrames[frm].spr), GetSpriteY(GUIFrames[frm].spr) + GetSpriteHeight(GUIFrames[frm].spr))
+	SetTextScissor(GUICheckboxes[GUIFrames[frm].contents[post].id].txt, GetSpriteX(GUIFrames[frm].spr), GetSpriteY(GUIFrames[frm].spr), GetSpriteX(GUIFrames[frm].spr)+GetSPriteWidth(GUIFrames[frm].spr), GetSpriteY(GUIFrames[frm].spr) + GetSpriteHeight(GUIFrames[frm].spr))
+endfunction post
+
+function AddRadioButtonToGUIFrame(frm as integer, x as float, y as float, img as string, leg as string, grp as integer)
+	if frm < 1 or frm > GUIFrames.length
+		exitfunction 0
+	elseif grp < 1 or grp > 10
+		exitfunction 0
+	elseif GUIFrames[frm].deleted = 1
+		exitfunction 9
+	endif
+	GUIFrames[frm].contents.length = GUIFrames[frm].contents.length+1
+	post = GUIFrames[frm].contents.length
+	GUIFrames[frm].contents[post].restype = 5
+	GUIFrames[frm].contents[post].id = CreateGUIRadioButton(GetSpriteX(GUIFrames[frm].spr)+x, GetSpriteY(GUIFrames[frm].spr)+y, img, leg, grp)
+	RBid = Mod(GUIFrames[frm].contents[post].id, 100)
+	SetSpriteScissor(GUIRadioButtons[grp].list[RBid].spr, GetSpriteX(GUIFrames[frm].spr), GetSpriteY(GUIFrames[frm].spr), GetSpriteX(GUIFrames[frm].spr)+GetSpriteWidth(GUIFrames[frm].spr), GetSpriteY(GUIFrames[frm].spr)+GetSpriteHeight(GUIFrames[frm].spr))
+	SetTextScissor(GUIRadioButtons[grp].list[RBid].txt, GetSpriteX(GUIFrames[frm].spr), GetSpriteY(GUIFrames[frm].spr), GetSpriteX(GUIFrames[frm].spr)+GetSpriteWidth(GUIFrames[frm].spr), GetSpriteY(GUIFrames[frm].spr)+GetSpriteHeight(GUIFrames[frm].spr))
+endfunction post
+
+function AddEditboxToGUIFrame(frm as integer, x as float, y as float, w as float, h as float)
+	if frm < 1 or frm > GUIFrames.length
+		exitfunction 0
+	elseif GUIFrames[frm].deleted = 1
+		exitfunction 0
+	endif
+	GUIFrames[frm].contents.length = GUIFrames[frm].contents.length+1
+	post = GUIFrames[frm].contents.length
+	GUIFrames[frm].contents[post].restype = 6
+	GUIFrames[frm].contents[post].id = CreateEditBox()
+	SetEditBoxSize(GUIFrames[frm].contents[post].id, w, h)
+	SetEditBoxPosition(GUIFrames[frm].contents[post].id, GetSpriteX(GUIFrames[frm].spr)+x, GetSpriteY(GUIFrames[frm].spr)+y)
+	SetEditBoxScissor(GUIFrames[frm].contents[post].id, GetSpriteX(GUIFrames[frm].spr), GetSpriteY(GUIFrames[frm].spr), GetSpriteX(GUIFrames[frm].spr)+GetSpriteWidth(GUIFrames[frm].spr), GetSpriteY(GUIFrames[frm].spr)+GetSpriteHeight(GUIFrames[frm].spr))
+	SetEditBoxBorderSize(GUIFrames[frm].contents[post].id, 0.5)
+	SetEditBoxFocus(GUIFrames[frm].contents[post].id, 0)
+	SetEditBoxActive(GUIFrames[frm].contents[post].id, 0)
+endfunction post
+
+function HandleGUIFrame(frm as integer)
+	if frm < 1 or frm > GUIFrames.length
+		exitfunction 0
+	elseif GUIFrames[frm].deleted = 1
+		exitfunction 0
+	endif
+	result = 0
+	temp as ElementType
+	for c = 1 to GUIFrames[frm].contents.length
+		temp = GUIFrames[frm].contents[c]
+		select temp.restype
+			case 1, 2:
+			endcase
+			case 3:
+				if HandleGUIButton(temp.id)
+					result = c
+				endif
+			endcase
+			case 4:
+				if HandleGUICheckbox(temp.id)
+					result = c
+				endif
+			endcase
+			case 5:
+				if HandleGUIRadioButtonGroup(temp.id/100)
+					result = c
+				endif
+			endcase
+			case 6:
+				px as float: py as float
+				px = GetPointerX()
+				py = GetPointerY()
+				if GetPointerPressed() = 1
+					if px >= GetEditBoxX(temp.id) and px <= GetEditBoxX(temp.id) + GetEditBoxWidth(temp.id) and py >= GetEditBoxY(temp.id) and py <= GetEditBoxY(temp.id) + GetEditBoxHeight(temp.id)
+						SetEditBoxActive(temp.id, 1)
+						SetEditBoxFocus(temp.id, 1)
+					endif
+				endif
+			endcase
+		endselect
+	next c
+endfunction result
+
+function GetGUIFrameElementDetails(frm as integer, post as integer)
+	if frm < 1 or frm > GUIFrames.length
+		exitfunction 0
+	elseif post < 1 or post > GUIFrames[frm].contents.length
+		exitfunction 0
+	elseif GUIFrames[frm].deleted = 1
+		exitfunction 0
+	endif
+	result = GUIFrames[frm].contents[post].restype * 100000 + GUIFrames[frm].contents[post].id
+endfunction result
+
+function SetGUIFramePosition(frm as integer, x as float, y as float)
+	if frm < 1 or frm > GUIFrames.length
+		exitfunction 0
+	endif
+	oldx as float: oldy as float
+	oldx = GetSpriteX(GUIFrames[frm].spr)
+	oldy = GetSpriteY(GUIFrames[frm].spr)
+	SetSpritePosition(GUIFrames[frm].spr, x, y)
+	temp as ElementType
+	for c = 1 to GUIFrames[frm].contents.length
+		temp = GUIFrames[frm].contents[c]
+		select temp.restype
+			case 1:
+				SetSpritePosition(temp.id, x+GetSpriteX(temp.id)-oldx, y+GetSpriteY(temp.id)-oldy)
+				SetSpriteScissor(temp.id, x, y, x+GetSpriteWidth(GUIFrames[frm].spr), y+GetSpriteHeight(GUIFrames[frm].spr))
+			endcase
+			case 2:
+				SetTextPosition(temp.id, x+GetTextX(temp.id)-oldx, y+GetTextY(temp.id)-oldy)
+				SetTextScissor(temp.id, x, y, x+GetSpriteWidth(GUIFrames[frm].spr), y+GetSpriteHeight(GUIFrames[frm].spr))
+			endcase
+			case 3:
+				SetGUIButtonPosition(temp.id, x+GetSpriteX(GUIButtons[temp.id].spr)-oldx, y+GetSpriteY(GUIButtons[temp.id].spr)-oldy)
+				SetSpriteScissor(GUIButtons[temp.id].spr, x, y, x+GetSpriteWidth(GUIFrames[frm].spr), y+GetSpriteHeight(GUIFrames[frm].spr))
+			endcase
+			case 4:
+				SetGUICheckboxPosition(temp.id, x+GetSpriteX(GUICheckboxes[temp.id].spr)-oldx, y+GetSpriteY(GUICheckboxes[temp.id].spr)-oldy)
+				SetSpriteScissor(GUICheckboxes[temp.id].spr, x, y, x+GetSpriteWidth(GUIFrames[frm].spr), y+GetSpriteHeight(GUIFrames[frm].spr))
+				SetTextScissor(GUICheckboxes[temp.id].txt, x, y, x+GetSPriteWidth(GUIFrames[frm].spr), y+GetSpriteHeight(GUIFrames[frm].spr))
+			endcase
+			case 5:
+				RBid = temp.id
+				group = RBid / 100
+				post = Mod(RBid, 100)
+				SetGUIRadioButtonPosition(temp.id, x+GetSpriteX(GUIRadioButtons[group].list[post].spr)-oldx, y+GetSpriteY(GUIRadioButtons[group].list[post].spr)-oldy)
+				SetSpriteScissor(GUIRadioButtons[group].list[post].spr, x, y, x+GetSpriteWidth(GUIFrames[frm].spr), y+GetSpriteHeight(GUIFrames[frm].spr))
+				SetTextScissor(GUIRadioButtons[group].list[post].txt, x, y, x+GetSpriteWidth(GUIFrames[frm].spr), y+GetSpriteHeight(GUIFrames[frm].spr))
+			endcase
+			case 6:
+				SetEditBoxPosition(temp.id, x+GetEditBoxX(temp.id)-oldx, y+GetEditBoxY(temp.id)-oldy)
+				SetEditBoxScissor(temp.id, x, y, x+GetEditBoxWidth(GUIFrames[frm].spr), y+GetEditBoxHeight(GUIFrames[frm].spr))
+			endcase
+		endselect
+	next c
+endfunction 1
+
+function SetGUIFrameDepth(frm as integer, layer as integer)
+	if frm < 1 or frm > GUIFrames.length
+		exitfunction 0
+	elseif layer < 0 or layer > 10000
+		exitfunction 0
+	endif
+	SetSpriteDepth(GUIFrames[frm].spr, layer)
+	temp as ElementType
+	for c = 1 to GUIFrames[frm].contents.length
+		temp = GUIFrames[frm].contents[c]
+		select temp.restype
+			case 1:
+				SetSpriteDepth(temp.id, layer)
+			endcase
+			case 2:
+				SetTextDepth(temp.id, layer)
+			endcase
+			case 3:
+				SetGUIButtonDepth(temp.id, layer)
+			endcase
+			case 4:
+				SetGUICheckboxDepth(temp.id, layer)
+			endcase
+			case 5:
+				global lastgroup as integer
+				RBid = temp.id
+				group = RBid / 100
+				if group <> lastgroup
+					SetGUIRadioButtonGroupDepth(group, layer)
+					lastgroup = group
+				endif
+			endcase
+			case 6:
+				SetEditBoxDepth(temp.id, layer)
+			endcase
+		endselect
+	next c
+endfunction 1
+
+function DeleteGUIFrame(frm as integer)
+	if frm < 1 or frm > GUIFrames.length
+		exitfunction 0
+	elseif GUIFrames[frm].deleted = 1
+		exitfunction 0
+	endif
+	temp as ElementType
+	for c = 1 to GUIFrames[frm].contents.length
+		temp = GUIFrames[frm].contents[c]
+		select temp.restype
+			case 1:
+				DeleteImage(GetSpriteImageID(temp.id))
+				DeleteSprite(temp.id)
+			endcase
+			case 2:
+				DeleteText(temp.id)
+			endcase
+			case 3:
+				DeleteGUIButton(temp.id)
+			endcase
+			case 4:
+				DeleteGUICheckBox(temp.id)
+			endcase
+			case 5:
+				grp = temp.id / 100
+				DeleteGUIRadioButtonGroup(grp)
+			endcase
+			case 6:
+				DeleteEditBox(temp.id)
+			endcase
+		endselect
+	next c
+	DeleteImage(GUIFrames[frm].img)
+	DeleteSprite(GUIFrames[frm].spr)
+	GUIFrames[frm].deleted = 1
+endfunction 1
+
+function BuildDefaultGUIFrame(w as float, h as float)
+	temp = CreateSprite(0)
+	SetSpriteSize(temp, w, h)
+	Render()
+	result = GetImage(0, 0, w, h)
+	DeleteSprite(temp)
+endfunction result
+
+
+
+type ButtonType
+	img as integer
+	spr as integer
+	state as integer
+	deleted as integer
+endtype
+
+global GUIButtons as ButtonType[0]
+
+function CreateGUIButton(x as float, y as float, w as float, h as float, image as string, legend as string)
+	GUIButtons.length = GUIButtons.length+1
+	id = GUIButtons.length
+	if legend = ""
+		GUIButtons[id].img = LoadImage(image)
+	else
+		result = BuildDefaultGUIButton(w, h, image, legend)
+		GUIButtons[id].img = result
+	endif
+	GUIButtons[id].spr = CreateSprite(GUIButtons[id].img)
+	SetSpriteAnimation(GUIButtons[id].spr, GetImageWidth(GUIButtons[id].img), GetImageHeight(GUIButtons[id].img)/3, 3)
+	SetSpriteFrame(GUIButtons[id].spr, 1)
+	SetSpriteSize(GUIButtons[id].spr, w, h)
+	SetSpritePosition(GUIButtons[id].spr, x, y)
+	GUIButtons[id].state = 1
+	GUIButtons[id].deleted = 0
+endfunction id
+
+function HandleGUIButton(id as integer)
+	if id < 1 or id > GUIButtons.length
+		exitfunction 0
+	elseif GUIButtons[id].deleted = 1
+		exitfunction 0
+	endif
+	result = 0
+	if GetSpriteHit(GetPointerX(), GetPointerY()) = GUIButtons[id].spr
+		if GUIButtons[id].state = 1
+			GUIButtons[id].state = 2
+		endif
+		if GetPointerPressed() and GUIButtons[id].state = 2
+			GUIButtons[id].state = 3
+		endif
+		if GetPointerReleased() and GUIButtons[id].state = 3
+			GUIButtons[id].state = 2
+			result = 1
+		endif
+	else
+		GUIButtons[id].state = 1
+	endif
+	SetSpriteFrame(GuiButtons[id].spr, GUIButtons[id].state)
+endfunction result
+
+function SetGUIButtonSize(id as integer, w as float, h as float)
+	if id < 1 or id > GUIButtons.length
+		exitfunction 0
+	elseif GUIButtons[id].deleted = 1
+		exitfunction 0
+	endif
+	SetSpriteSize(GUIButtons[id].spr, w, h)
+endfunction 1
+
+function SetGUIButtonPosition(id as integer, x as float, y as float)
+	if id < 1 or id > GUIButtons.length
+		exitfunction 0
+	elseif GUIButtons[id].deleted = 1
+		exitfunction 0
+	endif
+	SetSpritePosition(GUIButtons[id].spr, x, y)
+endfunction 1
+
+function DeleteGUIButton(id as integer)
+	if id < 1 or id > GUIButtons.length
+		exitfunction 0
+	endif
+	GUIButtons[id].deleted = 1
+	DeleteSprite(GUIButtons[id].spr)
+	DeleteImage(GUIButtons[id].img)
+	result = 1
+endfunction result
+
+function SetGUIButtonDepth(id as integer, layer as integer)
+	if id < 1 or id > GUIButtons.length
+		exitfunction 0
+	elseif GUIButtons[id].deleted = 1
+		exitfunction 0
+	endif
+	if layer < 0 or layer > 10000
+		exitfunction 0
+	endif
+	SetSpriteDepth(GUIButtons[id].spr, layer)
+endfunction 1
+
+function BuildDefaultGUIButton(w as float, h as float, image as string, legend as string)
+	if image <> ""
+		tempimg = LoadImage(image)
+		tempspr = CreateSprite(tempimg)
+		if h = -1
+			SetSpriteSize(tempspr, w, h)
+		else
+			SetSpriteSize(tempspr, w, h*3)
+		endif
+		h = GetSpriteHeight(tempspr)
+	else
+		tempspr = CreateSprite(0)
+		if h = -1
+			h = w * 0.5 * 3
+		else
+			h = h * 3
+		endif
+		SetSpriteSize(tempspr, w, h)
+	endif
+	
+	txt1 = CreateText(legend)
+	while GetTextTotalWidth(txt1) > w * 0.95
+		SetTextSize(txt1, GetTextSize(txt1) * 0.95)
+	endwhile
+	SetTextAlignment(txt1, 1)
+	SetTextColor(txt1, 200, 200, 200, 200)
+	SetTextPosition(txt1, w/2, h*0.165 - GetTextTotalHeight(txt1)/2)
+	
+	txt2 = CreateText(legend)
+	SetTextSize(txt2, GetTextSize(txt1))
+	SetTextAlignment(txt2, 1)
+	SetTextColor(txt2, 0, 0, 0, 255)
+	SetTextPosition(txt2, w/2, h*0.5-GetTextTotalHeight(txt1)/2)
+	
+	txt3 = CreateText(legend)
+	SetTextSize(txt3, GetTextSize(txt1))
+	SetTextAlignment(txt3, 1)
+	SetTextColor(txt3, 255, 255, 0, 255)
+	SetTextPosition(txt3, w/2, h*0.83-GetTextTotalHeight(txt1)/2)
+	
+	Render()
+	Result = GetImage(0, 0, w, h)
+	ClearScreen()
+	DeleteSprite(tempspr)
+	DeleteImage(tempimg)
+	DeleteText(txt1)
+	DeleteText(txt2)
+	DeleteText(txt3)
+endfunction result
+
+
+
+type CheckboxType
+	img as integer
+	spr as integer
+	txt as integer
+	deleted as integer
+endtype
+
+global GUICheckboxes as CheckboxType[0]
+
+function CreateGUICheckbox(x as float, y as float, image as string, legend as string)
+	GUICheckboxes.length = GUICheckboxes.length+1
+	id = GUICheckboxes.length
+	if image <> ""
+		img = LoadImage(image)
+	else
+		img = BuildDefaultGUICheckbox()
+	endif
+	GUICheckboxes[id].spr = CreateSprite(img)
+	SetSpriteAnimation(GUICheckboxes[id].spr, GetImageWidth(img), GetImageHeight(img)/2, 2)
+	SetSpriteFrame(GUICheckboxes[id].spr, 1)
+	SetSpriteSize(GUICheckboxes[id].spr, 3, -1)
+	SetSpritePosition(GUICheckboxes[id].spr, x, y)
+	GUICheckboxes[id].txt = CreateText(legend)
+	SetTextColor(GUICheckboxes[id].txt, 0, 0, 0, 255)
+	SetTextPosition(GUICheckboxes[id].txt, x+GetSpriteWidth(GUICheckboxes[id].spr)+1, y+GetSpriteHeight(GUICheckboxes[id].spr)/(GetTextTotalHeight(GUICheckboxes[id].txt)*2))
+	GUICheckboxes[id].deleted = 0
+endfunction id
+
+function HandleGUICheckbox(id as integer)
+	if id < 1 or id > GUICheckboxes.length
+		exitfunction 0
+	elseif GUICheckboxes[id].deleted = 1
+		exitfunction 0
+	endif
+	result = 0
+	if GetSpriteHit(GetPointerX(), GetPointerY()) = GUICheckboxes[id].spr OR GetTextHitTest(GUICheckboxes[id].txt, GetPointerX(), GetPointerY())
+		if GetPointerPressed()
+			SetSpriteFrame(GUICheckboxes[id].spr, 3-GetSpriteCurrentFrame(GUICheckboxes[id].spr))
+			result = GetSpriteCurrentFrame(GUICheckboxes[id].spr)
+		endif
+	endif
+endfunction result
+
+function GetGUICheckboxState(id as integer)
+	if id < 1 or id > GUICheckboxes.length
+		exitfunction 0
+	elseif GUICheckboxes[id].deleted = 1
+		exitfunction 0
+	endif
+	result = GetSpriteCurrentFrame(GUICheckboxes[id].spr)
+endfunction result
+
+function SetGUICheckboxTextSize(id as integer, sz as float)
+	if id < 1 or id > GUICheckboxes.length
+		exitfunction 0
+	elseif GUICheckboxes[id].deleted = 1
+		exitfunction 0
+	endif
+	SetTextSize(GUICheckboxes[id].txt, sz)
+	SetTextPosition(GUICheckboxes[id].txt, GetSpriteX(GUICheckboxes[id].spr) + GetSpriteWidth(GUICheckboxes[id].spr)+1, GetSpriteY(GUICheckboxes[id].spr) + GetSpriteHeight(GUICheckboxes[id].spr)/(GetTextTotalHeight(GUICheckboxes[id].txt)*2))
+endfunction 1
+
+function SetGUICheckboxTextColor(id as integer, col as integer)
+	if id < 1 or id > GUICheckboxes.length
+		exitfunction 0
+	elseif GUICheckboxes[id].deleted = 1
+		exitfunction 0
+	endif
+	SetTextColor(GUICheckboxes[id].txt, (col&&0xFF0000)>>16, (col&&0xFF00)>>8, (col&&0xFF), 255)
+endfunction 1
+
+function SetGUICheckboxDepth(id as integer, layer as integer)
+	if id < 1 or id > GUICheckboxes.length
+		exitfunction 0
+	elseif GUICheckboxes[id].deleted = 1
+		exitfunction 0
+	endif
+	if layer < 0 or layer > 10000
+		exitfunction 0
+	endif
+	SetSpriteDepth(GUICheckboxes[id].spr, layer)
+	SetTextDepth(GUICheckboxes[id].txt, layer)
+endfunction 1
+
+function SetGUICheckboxPosition(id as integer, x as float, y as float)
+	if id < 1 or id > GUICheckboxes.length
+		exitfunction 0
+	elseif GUICheckboxes[id].deleted = 1
+		exitfunction 0
+	endif
+	SetSpritePosition(GUICheckboxes[id].spr, x, y)
+	SetTextPosition(GUICheckboxes[id].txt, x+GetSpriteWidth(GUICheckboxes[id].spr)+1, y+GetSpriteHeight(GUICheckboxes[id].spr) / (GetTextTotalHeight(GUICheckboxes[id].txt)*2))
+endfunction 1
+
+function DeleteGUICheckbox(id)
+	if id < 1 or id > GUICheckboxes.length
+		exitfunction 0
+	endif
+	GUICheckboxes[id].deleted = 1
+	DeleteSprite(GUICheckboxes[id].spr)
+	DeleteImage(GetSpriteImageID(GUICheckboxes[id].spr))
+	DeleteText(GUICheckboxes[id].txt)
+endfunction 1
+
+function BuildDefaultGUICheckbox()
+	temp = CreateSprite(0)
+	SetSpriteSize(temp, 5, 10)
+	SetSpriteColor(temp, 255, 255, 255, 255)
+	temp2 = CreateSprite(0)
+	SetSpriteSize(temp2, 4, 4)
+	SetSpritePosition(temp2, 0.5, 0.5)
+	SetSpriteColor(temp2, 0, 0, 0, 255)
+	temp3 = CloneSprite(temp2)
+	SetSPritePosition(temp3, 0.5, 5.5)
+	txt1 = CreateText("x")
+	SetTextAlignment(txt1, 1)
+	SetTextPosition(txt1, 2.5, 5.5)
+	Render()
+	result = GetImage(0, 0, 5, 10)
+	ClearScreen()
+	DeleteSprite(temp)
+	DeleteSprite(temp2)
+	DeleteSprite(temp3)
+	DeleteText(txt1)
+endfunction result
+
+
+
+type RadioButtonType
+	img as integer
+	spr as integer
+	txt as integer
+endtype
+
+type RadioButtonGroupType
+	selected as integer
+	list as RadioButtonType[0]
+endtype
+
+global GUIRadioButtons as RadioButtonGroupType[10]
+
+function CreateGUIRadioButton(x as float, y as float, img as string, legend as string, grp as integer)
+	if grp < 1 or grp > 10
+		exitfunction 0
+	endif
+	GUIRadioButtons[grp].list.length = GUIRadioButtons[grp].list.length + 1
+	post = GUIRadioButtons[grp].list.length
+	if img <> ""
+		GUIRadioButtons[grp].list[post].img = LoadImage(img)
+	else
+		GUIRadioButtons[grp].list[post].img = BuildDefaultGUIRadioButton()
+	endif
+	GUIRadioButtons[grp].list[post].spr = CreateSprite(GUIRadioButtons[grp].list[post].img)
+	SetSpriteAnimation(GUIRadioButtons[grp].list[post].spr, GetImageWidth(GUIRadioButtons[grp].list[post].img), GetImageHeight(GUIRadioButtons[grp].list[post].img)/2, 2)
+	SetSpriteSize(GUIRadioButtons[grp].list[post].spr, 3, -1)
+	SetSpritePosition(GUIRadioButtons[grp].list[post].spr, x, y)
+	GUIRadioButtons[grp].list[post].txt = CreateText(legend)
+	SetTextColor(GUIRadioButtons[grp].list[post].txt, 0, 0, 0, 255)
+	SetTextPosition(GUIRadioButtons[grp].list[post].txt, x+GetSpriteWidth(GuiRadioButtons[grp].list[post].spr)+1, y+(GetSpriteHeight(GUIRadioButtons[grp].list[post].spr)/2.0-(GetTextTotalHeight(GUIRadioButtons[grp].list[post].txt)/2.0)))
+	if post = 1
+		SetSpriteFrame(GUIRadioButtons[grp].list[post].spr, 2)
+		GUIRadioButtons[grp].selected = post
+	else
+		SetSpriteFrame(GUIRadioButtons[grp].list[post].spr, 1)
+	endif
+	result = grp*100 + post
+endfunction result
+
+function HandleGUIRadioButtonGroup(grp as integer)
+	if grp < 1 or grp > 10
+		exitfunction 0
+	endif
+	result = 0
+	for c = 1 to GUIRadioButtons[grp].list.length
+		if GetSpriteHit(GetPointerX(), GetPointerY()) = GUIRadioButtons[grp].list[c].spr OR GetTextHitTest(GUIRadioButtons[grp].list[c].txt, GetPointerX(), GetPointerY())
+			if GetPointerPressed()
+				SetSpriteFrame(GUIRadioButtons[grp].list[GUIradioButtons[grp].selected].spr, 1)
+				SetSpriteFrame(GUIRadioButtons[grp].list[c].spr, 2)
+				GUIRadioButtons[grp].selected = c
+				result = GUIRadioButtons[grp].selected
+			endif
+		endif
+	next c
+endfunction result
+
+function GetGUIRadioButtonSelectedInGroup(grp as integer)
+	if grp < 1 or grp > 10
+		exitfunction -2
+	endif
+	if GUIRadioButtons[grp].list.length = -1
+		result = -1
+	else
+		result = GUIRadioButtons[grp].selected
+	endif
+endfunction result
+
+function SetGUIRadioButtonTextSize(id as integer, sz as float)
+	grp = id / 100
+	post = Mod(id, 100)
+	if grp < 1 or grp > 10
+		exitfunction 0
+	elseif post < 0 or post > GUIRadioButtons[grp].list.length
+		exitfunction 0
+	endif
+	SetTextSize(GUIRadioButtons[grp].list[post].txt, sz)
+	SetTextPosition(GUIRadioButtons[grp].list[post].txt, GetSpriteX(GUIRadioButtons[grp].list[post].spr), GetSpriteY(GUIRadioButtons[grp].list[post].spr) + (GetSpriteHeight(GUIRadioButtons[grp].list[post].spr)/2.0 - (GetTextTotalHeight(GUIRadioButtons[grp].list[post].txt)/2.0)))
+endfunction 1
+
+function SetGUIRadioButtonTextColor(id as integer, col as integer)
+	grp = id / 100
+	post = Mod(id, 100)
+	if grp < 1 or grp > 10
+		exitfunction 0
+	elseif post < 1 or post > GUIRadioButtons[grp].list.length
+		exitfunction 0
+	endif
+	SetTextColor(GUIRadioButtons[grp].list[post].txt, (col&&0xFF0000)>>16, (col&&0xFF00)>>8, (col&&0xFF), 255)
+endfunction 1
+
+function SetGUIRadioButtonGroupDepth(grp as integer, layer as integer)
+	if grp < 1 or grp > 10
+		exitfunction 0
+	endif
+	if layer < 0 or layer > 10000
+		exitfunction 0
+	endif
+	for c = 0 to GUIRadioButtons[grp].list.length
+		SetSpriteDepth(GUIRadioButtons[grp].list[c].spr, layer)
+		SetTextDepth(GUIRadioButtons[grp].list[c].txt, layer)
+	next c
+endfunction 1
+
+function SetGUIRadioButtonPosition(id as integer, x as float, y as float)
+	grp = id / 100
+	post = Mod(id, 100)
+	if grp < 1 or grp > 10
+		exitfunction 0
+	elseif post < 1 or post > GUIRadioButtons[grp].list.length
+		exitfunction 0
+	endif
+	SetSpritePosition(GUIRadioButtons[grp].list[post].spr, x, y)
+	SetTextPosition(GUIRadioButtons[grp].list[post].txt, x+GetSpriteWidth(GUIRadioButtons[grp].list[post].spr)+1, y)
+endfunction 1
+
+function DeleteGUIRadioButtonGroup(grp as integer)
+	if grp < 1 or grp > 10
+		exitfunction 0
+	endif
+	for c = 0 to GUIRadioButtons[grp].list.length
+		DeleteSprite(GUIRadioButtons[grp].list[c].spr)
+		DeleteImage(GUIRadioButtons[grp].list[c].img)
+		DeleteText(GUIRadioButtons[grp].list[c].txt)
+	next c
+	GUIRadioButtons[grp].list.length = -1
+endfunction 1
+
+function BuildDefaultGUIRadioButton()
+	temp1 = DrawSpriteCircle(5.3, 6.5, 4, 2, 0xCFCFCF, 255)
+	temp2 = DrawSpriteCircle(5.3, 19.7, 4, 2, 0xCFCFCF, 255)
+	temp3 = DrawSpriteCircle(5.3, 19.7, 1, 3, 0xFFFFFF, 255)
+	Render()
+	result = GetImage(0, 0, 10, 26)
+	ClearScreen()
+	DeleteSpriteCircle(temp1)
+	DeleteSpriteCircle(temp2)
+	DeleteSpriteCircle(temp3)
+endfunction result
+
+function DrawSpriteCircle(x as float, y as float, rad as float, thick as float, col as integer, opacity as integer)
+	lastx as float: lasty as float
+	newx as float: newy as float
+	
+	lastx = Cos(0)*rad+x
+	lasty = Sin(0)*rad*GetDisplayAspect()+y
+	newx = Cos(6)*rad+x
+	newy = Sin(6)*rad*GetDisplayAspect()+y
+	
+	id = DrawSpriteLine(lastx, lasty, newx, newy, thick, col, opacity)
+	
+	for c = 2 to 60
+		lastx = newx
+		lasty = newy
+		newx = Cos(6*c)*rad+x
+		newy = Sin(6*c)*rad*GetDisplayAspect()+y
+		DrawSpriteLine(lastx, lasty, newx, newy, thick, col, opacity)
+	next c
+endfunction id
+
+function DeleteSpriteCircle(id as integer)
+	for c = 0 to 59
+		DeleteSpriteLine(id+c)
+	next c
+endfunction
+
+function DrawSpriteLine(x1 as float, y1 as float, x2 as float, y2 as float, thick as float, col as integer, opacity as integer)
+	distance as float
+	angle as float
+	
+	id = CreateSprite(0)
+	SetSpriteColor(id, (col&&0xFF0000)>>16, (col&&0xFF00)>>8, (col&&0xFF), opacity)
+	distance = Sqrt((x2-x1)^2 + ((y2-y1)^2/GetDisplayAspect())^2)
+	SetSpriteSize(id, distance, thick)
+	SetSpriteOffset(id, 0, thick / 2.0)
+	SetSpritePositionByOffset(id, x1, y1)
+	angle = ATan2((y2-y1)/GetDisplayAspect(),x2-x1)
+	SetSpriteAngle(id, angle)
+endfunction id
+
+function RedrawSpriteLine(id as integer, x1 as float, y1 as float, x2 as float, y2 as float, thick as float, col as integer, opacity as integer)
+	distance as float
+	angle as float
+	
+	if NOT GetSpriteExists(id)
+		exitfunction
+	endif
+	SetSpriteColor(id, (col&&0xFF0000)>>16, (col&&0xFF00)>>8, (col&&0xFF), opacity)
+	distance = Sqrt((x2-x1)^2 + ((y2-y1)^2/GetDisplayAspect())^2)
+	SetSpriteSize(id, distance, thick)
+	SetSpritePositionByOffset(id, x1, y1)
+	angle = ATan2((y2-y1)/GetDisplayAspect(),x2-x1)
+	SetSpriteAngle(id, angle)
+endfunction
+
+function DeleteSpriteLine(id as integer)
+	if GetSpriteExists(id)
+		DeleteSprite(id)
+	endif
+endfunction
